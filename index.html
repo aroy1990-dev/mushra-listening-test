@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listening Test</title>
+<style>
+  :root { --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd6; --accent: #b3261e; --card: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --fg: #ececea; --muted: #a0a09a; --line: #34342f; --accent: #ff7a6e; --card: #1f1f1d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  video { width: 100%; border-radius: 6px; background: #000; }
+  button { font: inherit; padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--card);
+           color: var(--fg); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.playing { outline: 2px solid var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  .row { display: grid; grid-template-columns: 90px 1fr 44px; gap: 12px; align-items: center; padding: 8px 0;
+         border-bottom: 1px solid var(--line); }
+  .row input { width: 100%; }
+  .scale { display: grid; grid-template-columns: 90px 1fr 44px; gap: 12px; font-size: 12px; }
+  .scale div:nth-child(2) { display: flex; justify-content: space-between; color: var(--muted); }
+  .bar { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; }
+  input[type=text] { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+                     background: var(--card); color: var(--fg); }
+  .val { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="questions.js"></script>
+<script>
+const app = document.getElementById("app");
+// Paste the Google Apps Script web-app URL here (ends in /exec). Leave "" to only offer the CSV download.
+const SHEET_URL = "";
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+let state = null;  // {name, order: [question index], clipOrder: {qid: [clip]}, ratings: {clip: score}, at}
+const save = () => { try { localStorage.setItem("lt_state", JSON.stringify(state)); } catch (e) {} };
+const audio = new Audio();
+let playingBtn = null;
+function play(src, btn) {
+  if (playingBtn === btn && !audio.paused) { audio.pause(); btn.classList.remove("playing"); playingBtn = null; return; }
+  if (playingBtn) playingBtn.classList.remove("playing");
+  audio.src = src; audio.currentTime = 0; audio.play(); btn.classList.add("playing"); playingBtn = btn;
+}
+audio.onended = () => { if (playingBtn) playingBtn.classList.remove("playing"); playingBtn = null; };
+
+function start() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("lt_state")); } catch (e) {}
+  app.innerHTML = `
+    <h1>Listening test</h1>
+    <p>Someone clicked on one musician in a video, and each method tried to return only that musician's sound.</p>
+    <p>On every page you see the video with the clicked musician in a <b>red box</b> (no sound), and you hear the
+       <b>reference</b>: that musician recorded alone. Then rate each clip from 0 to 100 for <b>how close it is to the
+       reference</b>. Mark a clip down for every other musician you can hear, and for distortion or missing notes.
+       One clip is the reference itself: give it 100.</p>
+    <p class="muted">Use headphones in a quiet room. Play every clip at least once; you can replay as often as you like.
+       10 pages, about 20 minutes.</p>
+    <p><input type="text" id="name" placeholder="Your name" value="${saved ? saved.name : ""}"></p>
+    <div class="bar"><span></span><span>
+      ${saved && saved.at < QUESTIONS.length ? `<button id="resume">Resume (page ${saved.at + 1})</button> ` : ""}
+      <button class="primary" id="go">Start</button></span></div>`;
+  document.getElementById("go").onclick = () => {
+    const name = document.getElementById("name").value.trim();
+    if (!name) { alert("Please enter your name."); return; }
+    const id = Math.random().toString(36).slice(2, 8);
+    state = { name, id, order: shuffle(QUESTIONS.map((_, i) => i)), clipOrder: {}, ratings: {}, played: {}, at: 0 };
+    QUESTIONS.forEach(q => state.clipOrder[q.id] = shuffle(q.clips));
+    save(); page();
+  };
+  if (document.getElementById("resume")) document.getElementById("resume").onclick = () => { state = saved; page(); };
+}
+
+function page() {
+  audio.pause();
+  if (state.at >= QUESTIONS.length) return done();
+  const q = QUESTIONS[state.order[state.at]];
+  const clips = state.clipOrder[q.id];
+  app.innerHTML = `
+    <p class="muted">Page ${state.at + 1} of ${QUESTIONS.length}</p>
+    <video src="${q.video}" muted loop autoplay playsinline></video>
+    <p>${q.text}.</p>
+    <div class="bar" style="margin-top:4px"><button id="ref">▶ Reference</button><span class="muted">Clips are in random order.</span></div>
+    <div class="scale" style="margin-top:12px"><div></div><div><span>Bad</span><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span></div><div></div></div>
+    ${clips.map((c, i) => `
+      <div class="row">
+        <button data-clip="${c}">▶ ${String.fromCharCode(65 + i)}</button>
+        <input type="range" min="0" max="100" step="1" data-clip="${c}" value="${state.ratings[c] ?? 50}">
+        <span class="val" id="v${i}">${state.ratings[c] ?? "–"}</span>
+      </div>`).join("")}
+    <div class="bar">
+      <button id="back" ${state.at === 0 ? "disabled" : ""}>Back</button>
+      <span class="muted" id="hint"></span>
+      <button class="primary" id="next">${state.at === QUESTIONS.length - 1 ? "Finish" : "Next"}</button>
+    </div>`;
+  document.getElementById("ref").onclick = e => play(q.reference, e.currentTarget);
+  app.querySelectorAll("button[data-clip]").forEach(b => b.onclick = () => {
+    play(b.dataset.clip, b); state.played[b.dataset.clip] = true; save();
+  });
+  app.querySelectorAll("input[type=range]").forEach((r, i) => r.oninput = () => {
+    state.ratings[r.dataset.clip] = +r.value; document.getElementById("v" + i).textContent = r.value; save();
+  });
+  document.getElementById("back").onclick = () => { state.at--; save(); page(); };
+  document.getElementById("next").onclick = () => {
+    const missing = clips.filter(c => !state.played[c] || state.ratings[c] === undefined).length;
+    if (missing) { document.getElementById("hint").textContent = `Play and rate every clip (${missing} left).`; return; }
+    state.at++; save(); page(); window.scrollTo(0, 0);
+  };
+}
+
+function done() {
+  if (!state.id) { state.id = Math.random().toString(36).slice(2, 8); save(); }  // sessions saved before this field existed
+  const listener = `${state.name.replace(/[^\w-]+/g, "_")}_${state.id}`;  // the id keeps two listeners with one name apart
+  const data = [];
+  QUESTIONS.forEach(q => q.clips.forEach(c => data.push([listener, q.id, c.split("/").pop(), state.ratings[c]])));
+  const csv = ["listener,question,clip,score", ...data.map(r => r.join(","))].join("\n") + "\n";
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const file = `ratings_${listener}.csv`;
+  app.innerHTML = `<h1>Thank you</h1>
+    <p id="status">${SHEET_URL ? "Sending your ratings…" : "Download your ratings and send the file to Roy."}</p>
+    <p><a href="${url}" download="${file}"><button ${SHEET_URL ? "" : 'class="primary"'}>Download ${file}</button></a></p>
+    <p class="muted"><button id="back">Back to the last page</button></p>`;
+  document.getElementById("back").onclick = () => { state.at--; save(); page(); };
+  if (!SHEET_URL) return;
+  const status = document.getElementById("status");
+  // text/plain + no-cors avoids the CORS preflight that Apps Script cannot answer; the response is opaque.
+  fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
+                     body: JSON.stringify({ session: listener, rows: data }) })
+    .then(() => { status.innerHTML = "Your ratings were sent. Thank you! You can close this page."; })
+    .catch(() => { status.innerHTML = "<b>Sending failed.</b> Please download the file below and email it to Roy."; });
+}
+start();
+</script>
+</body>
+</html>
