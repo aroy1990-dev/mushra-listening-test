@@ -1,174 +1,473 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Listening Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" />
 <style>
-  :root { --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd6; --accent: #b3261e; --card: #fff;
-          color-scheme: light; }
-  :root[data-theme=dark] { --bg: #161615; --fg: #ececea; --muted: #a0a09a; --line: #34342f; --accent: #e5534b;
-                           --card: #1f1f1d; color-scheme: dark; }
-  #theme { position: fixed; top: 12px; right: 12px; padding: 4px 10px; font-size: 14px; z-index: 1; }
-  input[type=range] { accent-color: var(--accent); }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
-  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 8px; }
-  p { margin: 8px 0; }
-  .muted { color: var(--muted); }
-  video { width: 100%; border-radius: 6px; background: #000; }
-  button { font: inherit; padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--card);
-           color: var(--fg); cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.playing { outline: 2px solid var(--accent); }
-  button:disabled { opacity: .4; cursor: default; }
-  .row { display: grid; grid-template-columns: 90px 1fr 44px; gap: 12px; align-items: center; padding: 8px 0;
-         border-bottom: 1px solid var(--line); }
-  .row input { width: 100%; }
-  .scale { display: grid; grid-template-columns: 90px 1fr 44px; gap: 12px; font-size: 12px; }
-  .scale div:nth-child(2) { display: flex; justify-content: space-between; color: var(--muted); }
-  .bar { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; }
-  input[type=text] { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
-                     background: var(--card); color: var(--fg); }
-  .val { text-align: right; font-variant-numeric: tabular-nums; }
+:root{
+  --bg:#EDEEF2; --surface:#FBFBFD; --surface-2:#F3F4F8; --surface-3:#E9EBF0;
+  --ink:#171A21; --ink-soft:#3A404C; --muted:#646B7A; --faint:#8A91A0;
+  --line:#DBDDE4; --line-strong:#C7CAD4;
+  --accent:#E07A1F; --accent-strong:#B5601A; --accent-tint:#FBEBD8; --accent-line:#EFC79B;
+  --on-accent:#1C1205; --box:#E5322D;
+  --shadow:0 1px 2px rgba(20,24,33,.05), 0 8px 24px -12px rgba(20,24,33,.18);
+  --serif:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --sans:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0E1015; --surface:#171A21; --surface-2:#1D2129; --surface-3:#242A34;
+  --ink:#ECEEF3; --ink-soft:#C4C9D3; --muted:#98A0AF; --faint:#727A88;
+  --line:#292E39; --line-strong:#39404D;
+  --accent:#F2A03D; --accent-strong:#F4B463; --accent-tint:#2A2013; --accent-line:#5A4526;
+  --on-accent:#1C1205;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.5;
+     -webkit-font-smoothing:antialiased; min-height:100vh;}
+button{font-family:inherit;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px;}
+[hidden]{display:none!important;}
+.wrap{max-width:900px; margin:0 auto; padding:0 16px;}
+
+/* top bar with progress rail */
+.railwrap{position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 86%, transparent);
+          backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+.rail{height:3px;} .rail > i{display:block; height:100%; width:0%; background:var(--accent); transition:width .4s;}
+header.top{display:flex; align-items:center; justify-content:space-between; padding:12px 0;}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .dot{width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px var(--accent-tint);}
+.brand .name{font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted);}
+.counter{font-family:var(--mono); font-size:12px; letter-spacing:.14em; color:var(--muted); font-variant-numeric:tabular-nums;}
+.counter b{color:var(--ink); font-weight:600;}
+.iconbtn{background:var(--surface); border:1px solid var(--line); color:var(--ink-soft); width:34px; height:34px;
+         border-radius:9px; cursor:pointer; display:grid; place-items:center;}
+.iconbtn:hover{border-color:var(--line-strong); background:var(--surface-2);}
+.iconbtn svg{width:16px; height:16px;}
+
+main{padding:36px 0 72px;}
+.screen{animation:rise .45s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes rise{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){ .screen{animation:none;} .rail > i{transition:none;} }
+
+/* intro */
+.eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 16px;}
+h1.hero{font-family:var(--serif); font-weight:400; font-size:clamp(44px,8vw,80px); line-height:.98; margin:0 0 20px; text-wrap:balance;}
+h1.hero em{font-style:italic; color:var(--accent-strong);}
+.lead{font-size:clamp(16px,2.3vw,19px); color:var(--ink-soft); max-width:62ch; margin:0 0 18px;}
+.lead.warn{color:var(--accent-strong); font-weight:600;}
+.lead.small{color:var(--muted); font-size:14.5px; margin-bottom:32px;}
+.steps{list-style:none; padding:0; margin:0 0 36px; display:grid; gap:18px; max-width:640px;}
+.steps li{display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:start;}
+.steps .num{font-family:var(--mono); font-size:12px; color:var(--accent-strong); border:1px solid var(--accent-line);
+            background:var(--accent-tint); border-radius:6px; padding:3px 8px; letter-spacing:.1em;}
+.steps h3{margin:0 0 3px; font-size:15.5px; font-weight:600;}
+.steps p{margin:0; color:var(--muted); font-size:14.5px;}
+.idfield{display:flex; flex-direction:column; gap:7px; max-width:340px; margin:0 0 26px;}
+.idfield label{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+.idfield input{padding:11px 13px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface);
+               color:var(--ink); font-size:15px; font-family:var(--sans);}
+.idfield input::placeholder{color:var(--faint);}
+.meta{font-family:var(--mono); font-size:12px; color:var(--faint); margin-top:26px; letter-spacing:.04em;}
+.resume{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:0 0 26px; padding:14px 16px;
+        border:1px dashed var(--accent-line); border-radius:12px; background:var(--accent-tint); max-width:640px;}
+.resume span{color:var(--ink-soft); font-size:14.5px; flex:1; min-width:200px;}
+
+/* buttons */
+.btn{border:none; cursor:pointer; font-size:15px; font-weight:600; padding:13px 24px; border-radius:12px;
+     display:inline-flex; align-items:center; gap:10px; transition:transform .12s, background .2s;}
+.btn:active{transform:translateY(1px);}
+.btn.primary{background:var(--accent); color:var(--on-accent); box-shadow:var(--shadow);}
+.btn.primary:hover{background:var(--accent-strong); color:#fff;}
+.btn.ghost{background:var(--surface); color:var(--ink); border:1px solid var(--line-strong);}
+.btn.ghost:hover{background:var(--surface-2);}
+.btn[disabled]{opacity:.42; cursor:not-allowed; box-shadow:none;}
+.btn svg{width:17px; height:17px;}
+
+/* trial */
+.qhead{display:flex; align-items:baseline; gap:14px; margin:0 0 6px; flex-wrap:wrap;}
+.qtag{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong);}
+.qsub{font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em;}
+h2.q{font-family:var(--serif); font-weight:400; font-size:clamp(26px,4vw,38px); line-height:1.08; margin:0 0 18px; text-wrap:balance;}
+h2.q .boxed{color:var(--box); font-style:italic;}
+video{display:block; width:100%; border-radius:14px; background:#000; margin-bottom:16px; border:1px solid var(--line);}
+
+.refcard{background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:14px 18px; margin-bottom:22px;}
+.reflabel{font-size:13px; font-weight:600; margin-bottom:10px; color:var(--ink-soft);}
+.reflabel .refhint{font-weight:400; color:var(--muted);}
+.player{display:flex; align-items:center; gap:14px;}
+.play{flex:none; width:44px; height:44px; border-radius:50%; border:1px solid var(--line-strong); background:var(--surface);
+      color:var(--ink); cursor:pointer; display:grid; place-items:center; padding:0;}
+.play:hover{border-color:var(--accent);}
+.play svg{width:17px; height:17px;}
+.play.playing{border-color:var(--accent); background:var(--accent-tint); color:var(--accent-strong);}
+.barwrap{flex:1; height:8px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
+.bar{height:100%; width:0%; background:var(--accent); border-radius:999px;}
+
+/* clip rows: [play button + letter] [slider] [value] */
+.scale, .clip{display:grid; grid-template-columns:86px 1fr 46px; gap:14px; align-items:center;}
+.scale{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint);
+       padding:0 16px 6px;}
+.scale .labels{display:flex; justify-content:space-between;}
+.clips{display:grid; gap:10px;}
+.clip{position:relative; background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:12px 16px;
+      box-shadow:var(--shadow); overflow:hidden; transition:border-color .2s;}
+.clip.rated{border-color:var(--accent-line);}
+.clip .cbtn{display:flex; align-items:center; gap:10px; background:none; border:none; color:inherit; cursor:pointer; padding:0;}
+.clip .cbtn .play{width:38px; height:38px;}
+.clip .letter{font-family:var(--mono); font-weight:600; font-size:15px;}
+.clip .cbar{position:absolute; left:0; bottom:0; height:3px; width:0%; background:var(--accent); opacity:.8;}
+.clip .val{font-family:var(--mono); font-weight:600; font-size:15px; text-align:right; font-variant-numeric:tabular-nums;}
+.clip:not(.rated) .val{color:var(--faint); font-weight:400;}
+input[type=range]{width:100%; accent-color:var(--accent); cursor:pointer; margin:0; height:28px;}
+input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
+.clip:not(.rated) input[type=range]:not(:disabled){opacity:.6;}
+
+.qnav{display:flex; align-items:center; justify-content:space-between; margin-top:28px; gap:14px; flex-wrap:wrap;}
+.hint{font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.04em; text-align:center; flex:1;}
+
+/* review */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin:24px 0 30px;}
+.rchip{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:11px 13px; border:1px solid var(--line);
+       border-radius:11px; background:var(--surface); cursor:pointer; font:inherit; color:inherit;}
+.rchip:hover{border-color:var(--line-strong); background:var(--surface-2);}
+.rchip .rn{font-family:var(--mono); font-size:12px; color:var(--muted); letter-spacing:.08em;}
+.rchip .rv{font-family:var(--mono); font-weight:600; font-size:12.5px; padding:2px 8px; border-radius:6px;}
+.rchip .rv.set{background:var(--accent-tint); color:var(--accent-strong); border:1px solid var(--accent-line);}
+.rchip .rv.miss{color:var(--faint); border:1px dashed var(--line-strong);}
+.rchip.missing{border-color:var(--accent-line); border-style:dashed;}
+.reviewbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.tally{font-family:var(--mono); font-size:12.5px; color:var(--muted);}
+.tally b{color:var(--ink);}
+
+/* done */
+.donecard{text-align:center; padding:48px 16px; max-width:560px; margin:20px auto 0;}
+.donemark{width:76px; height:76px; border-radius:50%; margin:0 auto 26px; display:grid; place-items:center;
+          background:var(--accent-tint); border:1px solid var(--accent-line); color:var(--accent-strong);}
+.donemark svg{width:34px; height:34px;}
+.donecard h2{font-family:var(--serif); font-weight:400; font-size:44px; margin:0 0 12px;}
+.donecard p{color:var(--muted); margin:0 auto 18px; max-width:44ch;}
+.donecard a{color:var(--muted); font-family:var(--mono); font-size:12px;}
 </style>
 </head>
 <body>
-<button id="theme"></button>
-<main id="app"></main>
+<div class="railwrap">
+  <div class="rail"><i id="rail"></i></div>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand"><span class="dot"></span><span class="name">Listening Test</span></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="counter" id="counter" hidden><b id="cNow">01</b> / <span id="cTot">10</span></span>
+        <button class="iconbtn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">
+          <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></svg>
+        </button>
+      </div>
+    </header>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <!-- INTRO -->
+  <section class="screen" id="intro">
+    <p class="eyebrow">Blind listening study</p>
+    <h1 class="hero">Which one sounds <em>like the player</em> alone?</h1>
+    <p class="lead">Someone clicked on one musician in a video, and several methods tried to return only that musician's
+      sound. On each of the <span class="nT">10</span> pages you see the video with the clicked musician in a
+      <b style="color:var(--box)">red box</b> (muted), and you can play the <b>reference</b>: that musician recorded alone.</p>
+    <p class="lead">Then rate each of 7 clips from 0 to 100 for <b>how close it is to the reference</b>. Mark a clip down for
+      every other musician you can hear, and for distortion or missing notes. One of the clips is the reference itself.</p>
+    <p class="lead warn">Please wear headphones in a quiet room. Differences are easy to miss on laptop or phone speakers.</p>
+    <p class="lead small">All clips are matched for loudness, so please leave your volume alone during the test. The order of
+      the pages and of the clips is shuffled for every listener.</p>
+    <ol class="steps">
+      <li><span class="num">01</span><div><h3>Play the reference</h3><p>That is what the clicked musician sounds like alone.</p></div></li>
+      <li><span class="num">02</span><div><h3>Play and rate all 7 clips</h3><p>A slider unlocks once you've played its clip. Replay and compare as often as you like.</p></div></li>
+      <li><span class="num">03</span><div><h3>Review and submit</h3><p><span class="nT">10</span> pages, about 20 minutes. Your answers are saved as you go.</p></div></li>
+    </ol>
+    <div class="resume" id="resumeBox" hidden>
+      <span id="resumeText"></span>
+      <button class="btn ghost" id="resumeBtn">Resume</button>
+    </div>
+    <div class="idfield">
+      <label for="pid">Name or tag <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>
+      <input id="pid" type="text" placeholder="leave blank to stay anonymous" autocomplete="off" maxlength="60" />
+    </div>
+    <button class="btn primary" id="startBtn">
+      Begin the test
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <p class="meta">Anonymous unless you add a name · headphones required · ~20 min</p>
+  </section>
+
+  <!-- TRIAL -->
+  <section class="screen" id="question" hidden>
+    <div class="qhead"><span class="qtag" id="qtag">Page 01</span><span class="qsub" id="qsub"></span></div>
+    <h2 class="q" id="qprompt"></h2>
+    <video id="video" muted loop autoplay playsinline></video>
+    <div class="refcard">
+      <div class="reflabel">Reference <span class="refhint">(the clicked musician alone, listen to this first)</span></div>
+      <div class="player">
+        <button class="play" id="playRef" aria-label="Play the reference"></button>
+        <div class="barwrap"><div class="bar" id="barRef"></div></div>
+      </div>
+    </div>
+    <div class="scale"><span>Clip</span><span class="labels"><span>Bad</span><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span></span><span></span></div>
+    <div class="clips" id="clips"></div>
+    <div class="qnav">
+      <button class="btn ghost" id="prevBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Back
+      </button>
+      <span class="hint" id="navHint"></span>
+      <button class="btn primary" id="nextBtn" disabled>
+        <span id="nextLabel">Next</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section class="screen" id="review" hidden>
+    <p class="eyebrow">Almost done</p>
+    <h1 class="hero" style="font-size:clamp(36px,6vw,58px);margin-bottom:14px;">Review your answers.</h1>
+    <p class="lead">Tap any page to listen again and change your ratings. When you're happy, submit.</p>
+    <div class="grid" id="grid"></div>
+    <div class="reviewbar">
+      <span class="tally" id="tally"></span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn ghost" id="backToTop">Back to start</button>
+        <button class="btn primary" id="submitBtn">
+          <span>Submit answers</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DONE -->
+  <section class="screen" id="done" hidden>
+    <div class="donecard">
+      <div class="donemark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <h2>Thank you.</h2>
+      <p>Your responses have been recorded. You can close this tab now, and thanks for lending us your ears.</p>
+      <a href="#" id="dlLink">Download a copy of your answers</a>
+    </div>
+  </section>
+</main>
+
 <script src="questions.js"></script>
 <script>
-const app = document.getElementById("app");
-// Dark by default; the button in the corner switches, and the choice is remembered.
-let theme = "dark";
-try { theme = localStorage.getItem("lt_theme") || "dark"; } catch (e) {}
-const themeBtn = document.getElementById("theme");
+/* Set ENDPOINT to the Google Apps Script web-app URL (see collector/Code.gs). With "" the test runs in demo mode and
+   only offers the download on the last screen. */
+const CONFIG = {
+  ENDPOINT: "https://script.google.com/macros/s/AKfycbyO1KRuf2qItKBZ9naoeqtmCEOwZaFGFTurzsDnLTTE6l9PUisht0bd2iFQrGzXsriF/exec",
+  TEST: "mushra-tse",
+};
+const N = QUESTIONS.length;
+const stem = path => path.split("/").pop().replace(/\.wav$/, "");   // "audio/q01_164.wav" -> "q01_164"
+const qid = q => "q" + String(q.id).padStart(2, "0");
+const ALL_CLIPS = QUESTIONS.flatMap(q => q.clips.map(stem));          // fixed column order for the sheet
+const $ = id => document.getElementById(id);
+const shuffled = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pad = n => String(n).padStart(2, "0");
+
+/* ---------- state ----------
+   Saved in localStorage so a listener can reload or come back later; the sessionId stays the same, so the sheet row
+   is updated rather than duplicated. order: question indices in presentation order; slots: per question, clip
+   paths in on-screen order (A..G); ratings: clip stem -> 0..100; played: clip stem -> true. */
+const KEY = "lt_mushra_v2";
+let state = null;
+const newState = participant => ({
+  sessionId: crypto.randomUUID ? crypto.randomUUID() : "sid_" + Date.now().toString(36) + Math.random().toString(36).slice(2),
+  participant, startedAt: new Date().toISOString(), status: "in_progress",
+  order: shuffled(QUESTIONS.map((_, i) => i)),
+  slots: Object.fromEntries(QUESTIONS.map(q => [qid(q), shuffled(q.clips)])),
+  ratings: {}, played: {}, playCounts: {}, idx: 0, reviewing: false,
+});
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
+
+/* ---------- audio: one clip at a time ---------- */
+const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+const audio = new Audio(); audio.preload = "auto";
+let current = null;  // {key, btn, bar}
+function stopAudio() {
+  audio.pause(); audio.ontimeupdate = null;
+  if (current) { current.btn.classList.remove("playing"); current.btn.innerHTML = PLAY; }
+  current = null;
+}
+function playAudio(key, src, btn, bar, onStart) {
+  if (current && current.key === key) { stopAudio(); return; }
+  stopAudio();
+  audio.src = src; audio.currentTime = 0;
+  current = { key, btn, bar };
+  btn.classList.add("playing"); btn.innerHTML = PAUSE; bar.style.width = "0%";
+  audio.ontimeupdate = () => { if (audio.duration) bar.style.width = (audio.currentTime / audio.duration * 100) + "%"; };
+  audio.onended = () => { bar.style.width = "100%"; stopAudio(); };
+  audio.play().then(onStart).catch(stopAudio);
+}
+
+/* ---------- screens ---------- */
+const screens = { intro: $("intro"), question: $("question"), review: $("review"), done: $("done") };
+function show(name) {
+  stopAudio();
+  for (const k in screens) screens[k].hidden = k !== name;
+  $("counter").hidden = name !== "question";
+  $("video").hidden = name !== "question"; if (name !== "question") $("video").pause();
+  $("rail").style.width = (name === "intro" ? 0 : name === "question" ? state.idx / N * 100 : 100) + "%";
+  window.scrollTo(0, 0);
+}
+
+/* ---------- a page ---------- */
+const ratedOn = q => state.slots[qid(q)].filter(c => state.ratings[stem(c)] !== undefined).length;
+function renderQuestion() {
+  const q = QUESTIONS[state.order[state.idx]];
+  const slots = state.slots[qid(q)];
+  $("qtag").textContent = "Page " + pad(state.idx + 1);
+  $("cNow").textContent = pad(state.idx + 1);
+  $("qsub").textContent = "reference + 7 clips · 10 s each";
+  const m = q.text.match(/^(.*?the clicked player is the )(.*?)( in the red box)$/);
+  $("qprompt").innerHTML = m ? `${m[1].replace(/;\s*$/, "")}<span class="boxed">${m[2]}</span>${m[3]}.` : q.text + ".";
+  $("video").src = q.video; $("video").play().catch(() => {});
+  $("playRef").innerHTML = PLAY; $("barRef").style.width = "0%";
+  $("playRef").onclick = () => playAudio("ref", q.reference, $("playRef"), $("barRef"), () => count(stem(q.reference)));
+
+  const box = $("clips"); box.innerHTML = "";
+  slots.forEach((c, i) => {
+    const s = stem(c), letter = String.fromCharCode(65 + i), r = state.ratings[s];
+    const row = document.createElement("div");
+    row.className = "clip" + (r !== undefined ? " rated" : "");
+    row.innerHTML = `
+      <button class="cbtn" aria-label="Play clip ${letter}"><span class="play">${PLAY}</span><span class="letter">${letter}</span></button>
+      <input type="range" min="0" max="100" step="1" value="${r ?? 50}" aria-label="Rating for clip ${letter}" ${state.played[s] ? "" : "disabled"}>
+      <span class="val">${r ?? "–"}</span>
+      <span class="cbar"></span>`;
+    const btn = row.querySelector(".play"), slider = row.querySelector("input"), val = row.querySelector(".val");
+    row.querySelector(".cbtn").onclick = () => playAudio(s, c, btn, row.querySelector(".cbar"), () => {
+      count(s);
+      if (!state.played[s]) { state.played[s] = true; slider.disabled = false; persist(); updateNav(); }
+    });
+    slider.oninput = () => {
+      state.ratings[s] = +slider.value; val.textContent = slider.value; row.classList.add("rated");
+      persist(); updateNav(); scheduleAutosave();
+    };
+    box.appendChild(row);
+  });
+  // preload the next page's reference so it starts quickly
+  if (state.idx + 1 < N) new Audio().src = QUESTIONS[state.order[state.idx + 1]].reference;
+  $("prevBtn").style.visibility = state.idx === 0 ? "hidden" : "visible";
+  $("nextLabel").textContent = state.reviewing ? "Back to review" : state.idx === N - 1 ? "Review" : "Next";
+  updateNav();
+}
+function count(s) { state.playCounts[s] = (state.playCounts[s] || 0) + 1; persist(); }
+function updateNav() {
+  const q = QUESTIONS[state.order[state.idx]];
+  const left = 7 - ratedOn(q);
+  $("nextBtn").disabled = left > 0;
+  $("navHint").textContent = left ? `Play and rate every clip (${left} left)` : "";
+}
+
+/* ---------- review ---------- */
+function renderReview() {
+  const grid = $("grid"); grid.innerHTML = "";
+  let complete = 0;
+  state.order.forEach((qi, pos) => {
+    const q = QUESTIONS[qi], n = ratedOn(q);
+    if (n === 7) complete++;
+    const b = document.createElement("button");
+    b.className = "rchip" + (n === 7 ? "" : " missing");
+    b.innerHTML = `<span class="rn">Page ${pad(pos + 1)}</span><span class="rv ${n === 7 ? "set" : "miss"}">${n}/7</span>`;
+    b.onclick = () => { state.idx = pos; state.reviewing = true; persist(); show("question"); renderQuestion(); };
+    grid.appendChild(b);
+  });
+  $("tally").innerHTML = `<b>${complete}</b> / ${N} pages complete`;
+}
+
+/* ---------- sending to the sheet ----------
+   Same payload for autosave and the final submit, keyed by sessionId; the collector updates that row in place.
+   Autosave runs (debounced) after every rating, on every page change, and via sendBeacon when the tab is hidden or
+   closed. text/plain + no-cors avoids the CORS preflight that Apps Script cannot answer. */
+function payload() {
+  return {
+    test: CONFIG.TEST, sessionId: state.sessionId, status: state.status, participant: state.participant || "",
+    startedAt: state.startedAt, submittedAt: new Date().toISOString(),
+    elapsedMs: Date.now() - new Date(state.startedAt).getTime(), userAgent: navigator.userAgent,
+    order: state.order.map(i => qid(QUESTIONS[i])).join(","),
+    pagesDone: QUESTIONS.filter(q => ratedOn(q) === 7).length,
+    columns: ALL_CLIPS,                                                    // clip columns, fixed order
+    ratings: state.ratings,                                                // clip stem -> score
+    slots: Object.fromEntries(Object.entries(state.slots).map(([k, v]) => [k, v.map(stem).join(",")])),  // on-screen A..G
+    playCounts: state.playCounts,                                          // stem -> plays (includes the reference)
+  };
+}
+function sendNow(beacon) {
+  if (!CONFIG.ENDPOINT || !state) return Promise.resolve();
+  const body = JSON.stringify(payload());
+  if (beacon && navigator.sendBeacon) { navigator.sendBeacon(CONFIG.ENDPOINT, new Blob([body], { type: "text/plain;charset=utf-8" })); return Promise.resolve(); }
+  return fetch(CONFIG.ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body })
+    .catch(() => {});
+}
+let timer = null;
+function scheduleAutosave() { clearTimeout(timer); timer = setTimeout(() => sendNow(), 800); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && state && state.status !== "completed") sendNow(true); });
+window.addEventListener("pagehide", () => { if (state && state.status !== "completed") sendNow(true); });
+
+function submit() {
+  const missing = QUESTIONS.filter(q => ratedOn(q) < 7).length;
+  if (missing && !confirm(`${missing} page${missing === 1 ? " is" : "s are"} not fully rated. Submit anyway?`)) return;
+  clearTimeout(timer);
+  state.status = "completed"; persist();
+  sendNow();
+  const blob = new Blob([JSON.stringify(payload(), null, 2)], { type: "application/json" });
+  $("dlLink").href = URL.createObjectURL(blob); $("dlLink").download = "listening-test-response.json";
+  show("done");
+}
+
+/* ---------- theme (dark by default) ---------- */
 function setTheme(t) {
-  theme = t; document.documentElement.dataset.theme = t;
-  themeBtn.textContent = t === "dark" ? "☀ Light mode" : "☾ Dark mode";
-  try { localStorage.setItem("lt_theme", t); } catch (e) {}
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("lt-theme", t); } catch (e) {}
+  $("themeIcon").innerHTML = t === "dark"
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
+    : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
 }
-themeBtn.onclick = () => setTheme(theme === "dark" ? "light" : "dark");
-setTheme(theme);
-// Paste the Google Apps Script web-app URL here (ends in /exec). Leave "" to only offer the CSV download.
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbyO1KRuf2qItKBZ9naoeqtmCEOwZaFGFTurzsDnLTTE6l9PUisht0bd2iFQrGzXsriF/exec";
-const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-let state = null;  // {name, order: [question index], clipOrder: {qid: [clip]}, ratings: {clip: score}, at}
-const save = () => { try { localStorage.setItem("lt_state", JSON.stringify(state)); } catch (e) {} };
-const audio = new Audio();
-let playingBtn = null;
-function play(src, btn) {
-  if (playingBtn === btn && !audio.paused) { audio.pause(); btn.classList.remove("playing"); playingBtn = null; return; }
-  if (playingBtn) playingBtn.classList.remove("playing");
-  audio.src = src; audio.currentTime = 0; audio.play(); btn.classList.add("playing"); playingBtn = btn;
-}
-audio.onended = () => { if (playingBtn) playingBtn.classList.remove("playing"); playingBtn = null; };
+let savedTheme = null; try { savedTheme = localStorage.getItem("lt-theme"); } catch (e) {}
+setTheme(savedTheme || "dark");
+$("theme").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 
-function start() {
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem("lt_state")); } catch (e) {}
-  app.innerHTML = `
-    <h1>Listening test</h1>
-    <p>Someone clicked on one musician in a video, and each method tried to return only that musician's sound.</p>
-    <p>On every page you see the video with the clicked musician in a <b>red box</b> (no sound), and you hear the
-       <b>reference</b>: that musician recorded alone. Then rate each clip from 0 to 100 for <b>how close it is to the
-       reference</b>. Mark a clip down for every other musician you can hear, and for distortion or missing notes.
-       One clip is the reference itself: give it 100.</p>
-    <p class="muted">Use headphones in a quiet room. Play every clip at least once; you can replay as often as you like.
-       10 pages, about 20 minutes.</p>
-    <p><input type="text" id="name" placeholder="Your name" value="${saved ? saved.name : ""}"></p>
-    <div class="bar"><span></span><span>
-      ${saved && saved.at < QUESTIONS.length ? `<button id="resume">Resume (page ${saved.at + 1})</button> ` : ""}
-      <button class="primary" id="go">Start</button></span></div>`;
-  document.getElementById("go").onclick = () => {
-    const name = document.getElementById("name").value.trim();
-    if (!name) { alert("Please enter your name."); return; }
-    const id = Math.random().toString(36).slice(2, 8);
-    state = { name, id, order: shuffle(QUESTIONS.map((_, i) => i)), clipOrder: {}, ratings: {}, played: {}, at: 0 };
-    QUESTIONS.forEach(q => state.clipOrder[q.id] = shuffle(q.clips));
-    save(); page();
-  };
-  if (document.getElementById("resume")) document.getElementById("resume").onclick = () => { state = saved; page(); };
+/* ---------- wire up ---------- */
+$("cTot").textContent = N;
+document.querySelectorAll(".nT").forEach(e => e.textContent = N);
+const saved = load();
+if (saved && saved.status !== "completed") {
+  $("resumeBox").hidden = false;
+  $("resumeText").textContent = `You have an unfinished test${saved.participant ? " as " + saved.participant : ""} (page ${saved.idx + 1} of ${N}).`;
+  $("pid").value = saved.participant || "";
+  $("resumeBtn").onclick = () => { state = saved; show("question"); renderQuestion(); sendNow(); };
 }
-
-function page() {
-  audio.pause();
-  if (state.at >= QUESTIONS.length) return done();
-  const q = QUESTIONS[state.order[state.at]];
-  const clips = state.clipOrder[q.id];
-  app.innerHTML = `
-    <p class="muted">Page ${state.at + 1} of ${QUESTIONS.length}</p>
-    <video src="${q.video}" muted loop autoplay playsinline></video>
-    <p>${q.text}.</p>
-    <div class="bar" style="margin-top:4px"><button id="ref">▶ Reference</button><span class="muted">Clips are in random order.</span></div>
-    <div class="scale" style="margin-top:12px"><div></div><div><span>Bad</span><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span></div><div></div></div>
-    ${clips.map((c, i) => `
-      <div class="row">
-        <button data-clip="${c}">▶ ${String.fromCharCode(65 + i)}</button>
-        <input type="range" min="0" max="100" step="1" data-clip="${c}" value="${state.ratings[c] ?? 50}">
-        <span class="val" id="v${i}">${state.ratings[c] ?? "–"}</span>
-      </div>`).join("")}
-    <div class="bar">
-      <button id="back" ${state.at === 0 ? "disabled" : ""}>Back</button>
-      <span class="muted" id="hint"></span>
-      <button class="primary" id="next">${state.at === QUESTIONS.length - 1 ? "Finish" : "Next"}</button>
-    </div>`;
-  document.getElementById("ref").onclick = e => play(q.reference, e.currentTarget);
-  app.querySelectorAll("button[data-clip]").forEach(b => b.onclick = () => {
-    play(b.dataset.clip, b); state.played[b.dataset.clip] = true; save();
-  });
-  app.querySelectorAll("input[type=range]").forEach((r, i) => r.oninput = () => {
-    state.ratings[r.dataset.clip] = +r.value; document.getElementById("v" + i).textContent = r.value; save();
-  });
-  document.getElementById("back").onclick = () => { state.at--; save(); page(); };
-  document.getElementById("next").onclick = () => {
-    const missing = clips.filter(c => !state.played[c] || state.ratings[c] === undefined).length;
-    if (missing) { document.getElementById("hint").textContent = `Play and rate every clip (${missing} left).`; return; }
-    state.at++; save(); send(); page(); window.scrollTo(0, 0);
-  };
-}
-
-// The listener's id in the sheet; the random part keeps two listeners with one name apart.
-function listenerId() {
-  if (!state.id) { state.id = Math.random().toString(36).slice(2, 8); save(); }  // sessions saved before this field existed
-  return `${state.name.replace(/[^\w-]+/g, "_")}_${state.id}`;
-}
-
-// Rows for every finished page, in question order.
-function finishedRows() {
-  const listener = listenerId(), data = [];
-  state.order.slice(0, state.at).sort((a, b) => a - b).forEach(i =>
-    QUESTIONS[i].clips.forEach(c => data.push([listener, QUESTIONS[i].id, c.split("/").pop(), state.ratings[c]])));
-  return data;
-}
-
-// Sends all finished pages after each page. The sheet script replaces this listener's earlier rows, so nothing is
-// duplicated and changes made after going Back are picked up. text/plain + no-cors avoids the CORS preflight that
-// Apps Script cannot answer; the response is opaque, so a resolved promise only means the request went out.
-function send() {
-  if (!SHEET_URL) return Promise.resolve();
-  return fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
-                            body: JSON.stringify({ session: listenerId(), rows: finishedRows() }) });
-}
-
-function done() {
-  const listener = listenerId();
-  const data = finishedRows();
-  const csv = ["listener,question,clip,score", ...data.map(r => r.join(","))].join("\n") + "\n";
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  const file = `ratings_${listener}.csv`;
-  app.innerHTML = `<h1>Thank you</h1>
-    <p id="status">${SHEET_URL ? "Sending your ratings…" : "Download your ratings and send the file to Roy."}</p>
-    <p><a href="${url}" download="${file}"><button ${SHEET_URL ? "" : 'class="primary"'}>Download ${file}</button></a></p>
-    <p class="muted"><button id="back">Back to the last page</button></p>`;
-  document.getElementById("back").onclick = () => { state.at--; save(); page(); };
-  if (!SHEET_URL) return;
-  const status = document.getElementById("status");
-  send().then(() => { status.innerHTML = "Your ratings were sent. Thank you! You can close this page."; })
-    .catch(() => { status.innerHTML = "<b>Sending failed.</b> Please download the file below and email it to Roy."; });
-}
-start();
+$("startBtn").onclick = () => {
+  state = newState($("pid").value.trim()); persist();
+  show("question"); renderQuestion();
+  sendNow();  // record a row right away, before the first rating
+};
+$("nextBtn").onclick = () => {
+  if (state.reviewing || state.idx === N - 1) { state.reviewing = false; persist(); show("review"); renderReview(); }
+  else { state.idx++; persist(); show("question"); renderQuestion(); }
+  scheduleAutosave();
+};
+$("prevBtn").onclick = () => { if (state.idx > 0) { state.idx--; persist(); show("question"); renderQuestion(); } };
+$("backToTop").onclick = () => { state.idx = 0; state.reviewing = false; persist(); show("question"); renderQuestion(); };
+$("submitBtn").onclick = submit;
 </script>
 </body>
 </html>
