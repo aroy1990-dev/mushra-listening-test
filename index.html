@@ -98,7 +98,8 @@ h1.hero em{font-style:italic; color:var(--accent-strong);}
 .qsub{font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.06em;}
 h2.q{font-family:var(--serif); font-weight:400; font-size:clamp(26px,4vw,38px); line-height:1.08; margin:0 0 18px; text-wrap:balance;}
 h2.q .boxed{color:var(--box); font-style:italic;}
-video{display:block; width:100%; border-radius:14px; background:#000; margin-bottom:16px; border:1px solid var(--line);}
+#still{display:block; width:100%; aspect-ratio:960/396; border-radius:14px; background:#000; margin-bottom:16px;
+       border:1px solid var(--line); object-fit:cover;}
 
 .refcard{background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:14px 18px; margin-bottom:22px;}
 .reflabel{font-size:13px; font-weight:600; margin-bottom:10px; color:var(--ink-soft);}
@@ -181,16 +182,17 @@ input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
     <p class="eyebrow">Blind listening study</p>
     <h1 class="hero">Which one sounds <em>like the player</em> alone?</h1>
     <p class="lead">Someone clicked on one musician in a video, and several methods tried to return only that musician's
-      sound. On each of the <span class="nT">10</span> pages you see the video with the clicked musician in a
-      <b style="color:var(--box)">red box</b> (muted), and you can play the <b>reference</b>: that musician recorded alone.</p>
-    <p class="lead">Then rate each of 7 clips from 0 to 100 for <b>how close it is to the reference</b>. Mark a clip down for
-      every other musician you can hear, and for distortion or missing notes. One of the clips is the reference itself.</p>
+      sound. On each of the <span class="nT">10</span> pages you see a picture from the video with the clicked musician
+      in a <b style="color:var(--box)">red box</b>, and you can play the <b>reference</b>: that musician recorded alone.</p>
+    <p class="lead">The picture only shows you which musician was clicked. Judge the clips by ear only.</p>
+    <p class="lead">Then rate each of 7 clips from 0 to 100 for <b>how close it sounds to the reference</b>. Mark a clip down
+      for every other musician you can hear, and for distortion or missing notes. One of the clips is the reference itself.</p>
     <p class="lead warn">Please wear headphones in a quiet room. Differences are easy to miss on laptop or phone speakers.</p>
     <p class="lead small">All clips are matched for loudness, so please leave your volume alone during the test. The order of
       the pages and of the clips is shuffled for every listener.</p>
     <ol class="steps">
       <li><span class="num">01</span><div><h3>Play the reference</h3><p>That is what the clicked musician sounds like alone.</p></div></li>
-      <li><span class="num">02</span><div><h3>Play and rate all 7 clips</h3><p>A slider unlocks once you've played its clip. Replay and compare as often as you like.</p></div></li>
+      <li><span class="num">02</span><div><h3>Play and rate all 7 clips by ear</h3><p>A slider unlocks once you've played its clip. Replay and compare as often as you like.</p></div></li>
       <li><span class="num">03</span><div><h3>Review and submit</h3><p><span class="nT">10</span> pages, about 20 minutes. Your answers are saved as you go.</p></div></li>
     </ol>
     <div class="resume" id="resumeBox" hidden>
@@ -218,7 +220,7 @@ input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
   <section class="screen" id="question" hidden>
     <div class="qhead"><span class="qtag" id="qtag">Page 01</span><span class="qsub" id="qsub"></span></div>
     <h2 class="q" id="qprompt"></h2>
-    <video id="video" muted loop autoplay playsinline></video>
+    <img id="still" alt="The ensemble, with the clicked musician in a red box" />
     <div class="refcard">
       <div class="reflabel">Reference <span class="refhint">(the clicked musician alone, listen to this first)</span></div>
       <div class="player">
@@ -329,7 +331,6 @@ function show(name) {
   stopAudio();
   for (const k in screens) screens[k].hidden = k !== name;
   $("counter").hidden = name !== "question";
-  $("video").hidden = name !== "question"; if (name !== "question") $("video").pause();
   $("rail").style.width = (name === "intro" ? 0 : name === "question" ? state.idx / N * 100 : 100) + "%";
   window.scrollTo(0, 0);
 }
@@ -344,7 +345,8 @@ function renderQuestion() {
   $("qsub").textContent = "reference + 7 clips · 10 s each";
   const m = q.text.match(/^(.*?the clicked player is the )(.*?)( in the red box)$/);
   $("qprompt").innerHTML = m ? `${m[1].replace(/;\s*$/, "")}<span class="boxed">${m[2]}</span>${m[3]}.` : q.text + ".";
-  $("video").src = q.video; $("video").play().catch(() => {});
+  // a still frame (still/qNN.jpg, made from video/qNN.mp4) so nobody tries to match the sound to the movements
+  $("still").src = q.video.replace(/^video\//, "still/").replace(/\.mp4$/, ".jpg");
   $("playRef").innerHTML = PLAY; $("barRef").style.width = "0%";
   $("playRef").onclick = () => playAudio("ref", q.reference, $("playRef"), $("barRef"), () => count(stem(q.reference)));
 
@@ -370,7 +372,11 @@ function renderQuestion() {
     box.appendChild(row);
   });
   // preload the next page's reference so it starts quickly
-  if (state.idx + 1 < N) new Audio().src = QUESTIONS[state.order[state.idx + 1]].reference;
+  if (state.idx + 1 < N) {
+    const nq = QUESTIONS[state.order[state.idx + 1]];
+    new Audio().src = nq.reference;
+    new Image().src = nq.video.replace(/^video\//, "still/").replace(/\.mp4$/, ".jpg");
+  }
   $("prevBtn").style.visibility = state.idx === 0 ? "hidden" : "visible";
   $("nextLabel").textContent = state.reviewing ? "Back to review" : state.idx === N - 1 ? "Review" : "Next";
   updateNav();
