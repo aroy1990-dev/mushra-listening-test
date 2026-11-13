@@ -61,4 +61,40 @@ function doPost(e) {
   }
 }
 
-function doGet() { return ContentService.createTextOutput('listening test collector v2 is running'); }
+/**
+ * GET ?participant=<name> returns that name's most recent session as JSON so the page can resume it on any device:
+ * {found, status, sessionId, startedAt, order, slots: {q01: "..."}, ratings: {clip: score}, playCounts}.
+ * Names are matched ignoring case and surrounding spaces. Without a name it is a health check.
+ */
+function doGet(e) {
+  const name = e && e.parameter && e.parameter.participant;
+  if (!name) return ContentService.createTextOutput('listening test collector v3 is running');
+  const json = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) return json({ found: false });
+
+  const values = sh.getDataRange().getValues();
+  const header = values[0], col = h => header.indexOf(h);
+  const want = String(name).trim().toLowerCase();
+  // Sheets may turn ISO strings into Dates, so compare times, not strings
+  const time = v => v instanceof Date ? v.getTime() : (Date.parse(v) || 0);
+  let best = null;
+  for (let i = 1; i < values.length; i++) {
+    const r = values[i];
+    if (String(r[col('participant')]).trim().toLowerCase() !== want) continue;
+    if (!best || time(r[col('lastUpdate')]) >= time(best[col('lastUpdate')])) best = r;
+  }
+  if (!best) return json({ found: false });
+
+  const ratings = {}, slots = {};
+  header.forEach((h, j) => {
+    if (/^q\d+_\d+$/.test(h) && best[j] !== '') ratings[h] = Number(best[j]);
+    if (/_slots$/.test(h)) slots[h.replace(/_slots$/, '')] = String(best[j]);
+  });
+  let playCounts = {};
+  try { playCounts = JSON.parse(best[col('playCounts')] || '{}'); } catch (err) {}
+  const iso = v => v instanceof Date ? v.toISOString() : String(v);
+  return json({ found: true, status: best[col('status')], sessionId: best[col('sessionId')],
+                participant: best[col('participant')], startedAt: iso(best[col('startedAt')]),
+                order: String(best[col('order')]), slots, ratings, playCounts });
+}

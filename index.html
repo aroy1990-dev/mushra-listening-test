@@ -200,6 +200,12 @@ input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
     <div class="idfield">
       <label for="pid">Name or tag <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>
       <input id="pid" type="text" placeholder="leave blank to stay anonymous" autocomplete="off" maxlength="60" />
+      <span style="font-size:13px;color:var(--faint);">With a name you can come back later, also on another device, and continue where you left off.</span>
+    </div>
+    <div class="resume" id="remoteBox" hidden>
+      <span id="remoteText"></span>
+      <button class="btn ghost" id="remoteNew">Start over</button>
+      <button class="btn primary" id="remoteResume">Continue</button>
     </div>
     <button class="btn primary" id="startBtn">
       Begin the test
@@ -453,12 +459,67 @@ if (saved && saved.status !== "completed") {
   $("resumeBox").hidden = false;
   $("resumeText").textContent = `You have an unfinished test${saved.participant ? " as " + saved.participant : ""} (page ${saved.idx + 1} of ${N}).`;
   $("pid").value = saved.participant || "";
-  $("resumeBtn").onclick = () => { state = saved; show("question"); renderQuestion(); sendNow(); };
+  $("resumeBtn").onclick = () => begin(saved);
 }
-$("startBtn").onclick = () => {
-  state = newState($("pid").value.trim()); persist();
-  show("question"); renderQuestion();
-  sendNow();  // record a row right away, before the first rating
+function begin(s) {
+  state = s; persist();
+  if (state.idx >= N) { state.idx = N - 1; show("review"); renderReview(); }
+  else { show("question"); renderQuestion(); }
+  sendNow();  // record or refresh the row right away, before the first rating
+}
+
+/* Resume by name: ask the collector for this name's latest session (any device) and rebuild the state from it. */
+async function lookup(name) {
+  const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+  const r = await fetch(CONFIG.ENDPOINT + "?participant=" + encodeURIComponent(name), { signal: ctl.signal });
+  return r.json();
+}
+function fromRemote(p) {
+  const byQid = Object.fromEntries(QUESTIONS.map((q, i) => [qid(q), i]));
+  const order = p.order.split(",").map(k => byQid[k]);
+  if (order.length !== N || order.some(i => i === undefined)) throw new Error("bad order");
+  const slots = {};
+  QUESTIONS.forEach(q => {
+    const saved = (p.slots[qid(q)] || "").split(",").filter(Boolean).map(s => "audio/" + s + ".wav");
+    slots[qid(q)] = saved.length === 7 && saved.every(c => q.clips.includes(c)) ? saved : shuffled(q.clips);
+  });
+  const ratings = {}, played = {};
+  for (const [k, v] of Object.entries(p.ratings || {})) if (ALL_CLIPS.includes(k)) { ratings[k] = v; played[k] = true; }
+  const s = { sessionId: p.sessionId, participant: p.participant, startedAt: p.startedAt || new Date().toISOString(),
+              status: "in_progress", order, slots, ratings, played, playCounts: p.playCounts || {}, idx: 0, reviewing: false };
+  state = s;  // ratedOn() reads the global state
+  const first = order.findIndex(i => ratedOn(QUESTIONS[i]) < 7);
+  s.idx = first < 0 ? N : first;
+  return s;
+}
+
+$("startBtn").onclick = async () => {
+  const name = $("pid").value.trim();
+  if (!name || !CONFIG.ENDPOINT) return begin(newState(name));
+  // same name and an unfinished session in this browser: just continue it
+  if (saved && saved.status !== "completed" && (saved.participant || "").toLowerCase() === name.toLowerCase()) return begin(saved);
+  const btn = $("startBtn"); btn.disabled = true; btn.firstChild.textContent = "Checking… ";
+  let p = null;
+  try { p = await lookup(name); } catch (e) { p = null; }
+  btn.disabled = false; btn.firstChild.textContent = "Begin the test ";
+  if (!p || !p.found) return begin(newState(name));
+  let remote = null;
+  try { remote = p.status === "completed" ? null : fromRemote(p); } catch (e) { remote = null; }
+  state = null;
+  $("remoteBox").hidden = false;
+  if (remote) {
+    state = remote; const done = QUESTIONS.filter(q => ratedOn(q) === 7).length; state = null;
+    $("remoteText").textContent = `Found an unfinished test for "${p.participant}" (${done} of ${N} pages done). Continue it, or start over?`;
+    $("remoteResume").hidden = false;
+    $("remoteResume").onclick = () => begin(remote);
+  } else {
+    $("remoteText").textContent = p.status === "completed"
+      ? `"${p.participant}" has already completed the test. Thank you! Start a new one only if you want to do it again.`
+      : `Found a test for "${p.participant}" but could not load it. You can start over.`;
+    $("remoteResume").hidden = true;
+  }
+  $("remoteNew").onclick = () => begin(newState(name));
+  $("remoteBox").scrollIntoView({ behavior: "smooth", block: "center" });
 };
 $("nextBtn").onclick = () => {
   if (state.reviewing || state.idx === N - 1) { state.reviewing = false; persist(); show("review"); renderReview(); }
