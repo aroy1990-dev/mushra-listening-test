@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Listening Test</title>
 <style>
-  :root { --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd6; --accent: #b3261e; --card: #fff; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #161615; --fg: #ececea; --muted: #a0a09a; --line: #34342f; --accent: #ff7a6e; --card: #1f1f1d; }
-  }
+  :root { --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd6; --accent: #b3261e; --card: #fff;
+          color-scheme: light; }
+  :root[data-theme=dark] { --bg: #161615; --fg: #ececea; --muted: #a0a09a; --line: #34342f; --accent: #e5534b;
+                           --card: #1f1f1d; color-scheme: dark; }
+  #theme { position: fixed; top: 12px; right: 12px; padding: 4px 10px; font-size: 14px; z-index: 1; }
+  input[type=range] { accent-color: var(--accent); }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
   main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
@@ -33,10 +35,22 @@
 </style>
 </head>
 <body>
+<button id="theme"></button>
 <main id="app"></main>
 <script src="questions.js"></script>
 <script>
 const app = document.getElementById("app");
+// Dark by default; the button in the corner switches, and the choice is remembered.
+let theme = "dark";
+try { theme = localStorage.getItem("lt_theme") || "dark"; } catch (e) {}
+const themeBtn = document.getElementById("theme");
+function setTheme(t) {
+  theme = t; document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀ Light mode" : "☾ Dark mode";
+  try { localStorage.setItem("lt_theme", t); } catch (e) {}
+}
+themeBtn.onclick = () => setTheme(theme === "dark" ? "light" : "dark");
+setTheme(theme);
 // Paste the Google Apps Script web-app URL here (ends in /exec). Leave "" to only offer the CSV download.
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbyO1KRuf2qItKBZ9naoeqtmCEOwZaFGFTurzsDnLTTE6l9PUisht0bd2iFQrGzXsriF/exec";
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -111,15 +125,36 @@ function page() {
   document.getElementById("next").onclick = () => {
     const missing = clips.filter(c => !state.played[c] || state.ratings[c] === undefined).length;
     if (missing) { document.getElementById("hint").textContent = `Play and rate every clip (${missing} left).`; return; }
-    state.at++; save(); page(); window.scrollTo(0, 0);
+    state.at++; save(); send(); page(); window.scrollTo(0, 0);
   };
 }
 
-function done() {
+// The listener's id in the sheet; the random part keeps two listeners with one name apart.
+function listenerId() {
   if (!state.id) { state.id = Math.random().toString(36).slice(2, 8); save(); }  // sessions saved before this field existed
-  const listener = `${state.name.replace(/[^\w-]+/g, "_")}_${state.id}`;  // the id keeps two listeners with one name apart
-  const data = [];
-  QUESTIONS.forEach(q => q.clips.forEach(c => data.push([listener, q.id, c.split("/").pop(), state.ratings[c]])));
+  return `${state.name.replace(/[^\w-]+/g, "_")}_${state.id}`;
+}
+
+// Rows for every finished page, in question order.
+function finishedRows() {
+  const listener = listenerId(), data = [];
+  state.order.slice(0, state.at).sort((a, b) => a - b).forEach(i =>
+    QUESTIONS[i].clips.forEach(c => data.push([listener, QUESTIONS[i].id, c.split("/").pop(), state.ratings[c]])));
+  return data;
+}
+
+// Sends all finished pages after each page. The sheet script replaces this listener's earlier rows, so nothing is
+// duplicated and changes made after going Back are picked up. text/plain + no-cors avoids the CORS preflight that
+// Apps Script cannot answer; the response is opaque, so a resolved promise only means the request went out.
+function send() {
+  if (!SHEET_URL) return Promise.resolve();
+  return fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
+                            body: JSON.stringify({ session: listenerId(), rows: finishedRows() }) });
+}
+
+function done() {
+  const listener = listenerId();
+  const data = finishedRows();
   const csv = ["listener,question,clip,score", ...data.map(r => r.join(","))].join("\n") + "\n";
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
   const file = `ratings_${listener}.csv`;
@@ -130,10 +165,7 @@ function done() {
   document.getElementById("back").onclick = () => { state.at--; save(); page(); };
   if (!SHEET_URL) return;
   const status = document.getElementById("status");
-  // text/plain + no-cors avoids the CORS preflight that Apps Script cannot answer; the response is opaque.
-  fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
-                     body: JSON.stringify({ session: listener, rows: data }) })
-    .then(() => { status.innerHTML = "Your ratings were sent. Thank you! You can close this page."; })
+  send().then(() => { status.innerHTML = "Your ratings were sent. Thank you! You can close this page."; })
     .catch(() => { status.innerHTML = "<b>Sending failed.</b> Please download the file below and email it to Roy."; });
 }
 start();
