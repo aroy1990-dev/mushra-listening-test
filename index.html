@@ -113,6 +113,10 @@ h2.q .boxed{color:var(--box); font-style:italic;}
 .barwrap{flex:1; height:8px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
 .bar{height:100%; width:0%; background:var(--accent); border-radius:999px;}
 
+.task{font-size:14.5px; line-height:1.45; color:var(--ink-soft); background:var(--accent-tint); border:1px solid var(--accent-line);
+      border-left:4px solid var(--accent); border-radius:10px; padding:10px 14px; margin:0 0 20px;}
+.task b{color:var(--ink);}
+
 /* clip rows: [play button + letter] [slider] [value] */
 .scale, .clip{display:grid; grid-template-columns:86px 1fr 46px; gap:14px; align-items:center;}
 .scale{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint);
@@ -128,6 +132,15 @@ h2.q .boxed{color:var(--box); font-style:italic;}
 .clip .cbar{position:absolute; left:0; bottom:0; height:3px; width:0%; background:var(--accent); opacity:.8;}
 .clip .val{font-family:var(--mono); font-weight:600; font-size:15px; text-align:right; font-variant-numeric:tabular-nums;}
 .clip:not(.rated) .val{color:var(--faint); font-weight:400;}
+@media (max-width:520px){
+  /* phones: give the slider most of the row */
+  .scale, .clip{grid-template-columns:58px 1fr 30px; gap:8px;}
+  .clip{padding:10px 10px;}
+  .scale{padding:0 10px 6px; font-size:9.5px; letter-spacing:0;}
+  .clip .cbtn{gap:6px;}
+  .clip .cbtn .play{width:34px; height:34px;}
+  .clip .val{font-size:14px;}
+}
 input[type=range]{width:100%; accent-color:var(--accent); cursor:pointer; margin:0; height:28px;}
 input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
 .clip:not(.rated) input[type=range]:not(:disabled){opacity:.6;}
@@ -227,6 +240,10 @@ input[type=range]:disabled{cursor:not-allowed; opacity:.35;}
         <button class="play" id="playRef" aria-label="Play the reference"></button>
         <div class="barwrap"><div class="bar" id="barRef"></div></div>
       </div>
+    </div>
+    <div class="task">
+      <b>Task: source separation.</b> A clip should contain the reference instrument and nothing else.
+      Score lower for any other instrument you hear, and for missing notes or distortion.
     </div>
     <div class="scale"><span>Clip</span><span class="labels"><span>Bad</span><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span></span><span></span></div>
     <div class="clips" id="clips"></div>
